@@ -12,7 +12,7 @@ All mutation happens through [Firebase client's](https://www.firebase.com/docs/w
 
 There's also [refire-app](https://github.com/hoppula/refire-app), it wraps Refire, Redux, React Router and React Free Style with developer friendly API.
 
-## syncFirebase({apiKey, projectId, store, bindings, onCancel, onAuth, pathParams, databaseURL, serviceAccount, name})
+## syncFirebase({apiKey, projectId, store, bindings, onCancel, onAuth, pathParams, databaseURL, name})
 
 syncFirebase needs bindings, a Redux store instance and a Firebase instance settings (apiKey & projectId).
 
@@ -25,8 +25,6 @@ syncFirebase needs bindings, a Redux store instance and a Firebase instance sett
 `store` is your Redux store instance, remember to include `firebaseReducer` in your Redux reducer function, see the **Usage example** below.
 
 `databaseURL` (optional) you can override default `projectId.firebaseio.com` url by setting `databaseURL`, pass the whole url.
-
-`serviceAccount` (optional) is only for server-side usage, see [Add Firebase to your Server](https://firebase.google.com/docs/server/setup) for instructions.
 
 `name` (optional) unique identifier for this instance, defaults to `[DEFAULT]`.
 

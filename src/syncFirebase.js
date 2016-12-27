@@ -26,7 +26,6 @@ export default function syncFirebase(options = {}) {
     store,
     projectId,
     databaseURL,
-    serviceAccount,
     name = '[DEFAULT]',
     bindings: initialBindings = {},
     onCancel = () => {},
@@ -55,10 +54,6 @@ export default function syncFirebase(options = {}) {
     authDomain: `${projectId}.firebaseapp.com`,
     databaseURL: databaseURL ? databaseURL : `https://${projectId}.firebaseio.com`,
     storageBucket: `${projectId}.appspot.com`,
-  }
-
-  if (serviceAccount) {
-    config.serviceAccount = serviceAccount
   }
 
   store.dispatch(updateConfig({name: name}))

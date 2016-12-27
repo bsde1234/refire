@@ -91,10 +91,6 @@ function newProjectId() {
 function generateServerConfig(projectId) {
   return {
     databaseURL: `ws://${projectId}.firebaseio.test:${PORT}`,
-    serviceAccount: {
-      'private_key': 'fake',
-      'client_email': 'fake'
-    },
     name: `test-firebase-client-${projectId}`
   }
 }
