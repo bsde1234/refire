@@ -1,3 +1,12 @@
+# 3.0.0
+
+## Breaking changes
+
+### React components have moved
+
+- Refire can now be used with other frameworks without pulling React as dependency
+- React components are still maintained and can now be found at [refire-react](https://github.com/hoppula/refire-react)
+
 # 2.0.0
 
 ## New features

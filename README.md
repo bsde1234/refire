@@ -1,18 +1,25 @@
 # Refire
 
-> Declarative Firebase bindings for Redux and React
+> Declarative Firebase bindings for Redux
 
 Refire keeps your local [Redux](http://redux.js.org/) store in sync with selected [Firebase](https://www.firebase.com/) paths. You can declaratively bind Firebase paths as Strings, Objects or Arrays.
 
 You can also specify queries based on Redux state (e.g. currently logged in user or route parameter) and Refire will automatically subscribe and unsubscribe your bindings when state changes.
 
-Using provided [React](https://facebook.github.io/react/) higher order components and [React Redux](https://github.com/reactjs/react-redux) helper you also get automatic re-renders for your connected views on any change.
+All data mutation happens through [Firebase client's](https://www.firebase.com/docs/web/api/firebase) `references` and Refire automatically updates your local Redux state after any changes in Firebase.
 
-All mutation happens through [Firebase client's](https://www.firebase.com/docs/web/api/firebase) `references` and there's `FirebaseWrite` HOC for easy updates from your React components.
+### React
+For usage with [React](https://facebook.github.io/react/) there's [refire-react](https://github.com/hoppula/refire-react).
 
-There's also [refire-app](https://github.com/hoppula/refire-app), it wraps Refire, Redux, React Router and React Free Style with developer friendly API.
+[refire-react](https://github.com/hoppula/refire-react) provides useful higher order components for common user actions such as login, logout, oAuth, registration, password reset and writing to Firebase.
 
-## syncFirebase({apiKey, projectId, store, bindings, onCancel, onAuth, pathParams, databaseURL, name})
+If you have no need for special higher order React components, you can also just use the provided `firebaseToProps` helper with [react-redux](https://github.com/reactjs/react-redux) to get automatic re-renders for your connected views on any change.
+
+There's also [refire-app](https://github.com/hoppula/refire-app) which wraps Refire, Refire React, Redux, React Router and React Free Style with developer friendly API.
+
+## Usage documentation
+
+### syncFirebase({apiKey, projectId, store, bindings, onCancel, onAuth, pathParams, databaseURL, name})
 
 syncFirebase needs bindings, a Redux store instance and a Firebase instance settings (apiKey & projectId).
 
@@ -34,7 +41,7 @@ syncFirebase needs bindings, a Redux store instance and a Firebase instance sett
 
 `pathParams` (optional) gets called with state and result will be provided as second parameter for bindings' path function.
 
-### Usage example
+#### Usage example
 ```js
 import { applyMiddleware, createStore, compose, combineReducers } from 'redux'
 import thunk from 'redux-thunk'
@@ -107,13 +114,13 @@ const {unsubscribe} = syncFirebase({
 })
 ```
 
-## React Redux connect helper
+### React Redux connect helper
 
-### firebaseToProps(localBindings, mapStateToProps)
+#### firebaseToProps(localBindings, mapStateToProps)
 
 Creates selector function for [react-redux's connect](https://github.com/reactjs/react-redux/blob/master/docs/api.md#connectmapstatetoprops-mapdispatchtoprops-mergeprops-options).
 
-`firebaseToProps` will return the content of your given bindings as props.
+`firebaseToProps` will return the state of your given bindings as props.
 
 If you also need to return something else from Redux, pass your normal mapStateToProps as second parameter, firebaseToProps will merge the results.
 
@@ -147,26 +154,6 @@ class App extends Component {
 export default connect(firebaseToProps(["_status"]))(App)
 ```
 
-## React components
-
-These higher order components will help you with basic Firebase tasks.
-
-**FirebaseOAuth** does not work with [React Native](https://facebook.github.io/react-native/) yet as it requires browser redirects or popups. It might be possible to add React Native version later as WebView component is now available for both iOS & Android.
-
-### Documentation
-
-[FirebaseLogin](docs/FirebaseLogin.md)
-
-[FirebaseLogout](docs/FirebaseLogout.md)
-
-[FirebaseOAuth](docs/FirebaseOAuth.md)
-
-[FirebaseRegistration](docs/FirebaseRegistration.md)
-
-[FirebaseResetPassword](docs/FirebaseResetPassword.md)
-
-[FirebaseWrite](docs/FirebaseWrite.md)
-
 ## Data shape
 
 All returned values are wrapped in `{key, value}` shaped object for easier consumption.
@@ -176,15 +163,15 @@ Primitives and Objects could be returned as they are, but then consumption of Ar
 ### Usage example using ES6 destructuring assignment
 ```js
 // Primitives
-// {key: "counter", value: 1}
+// Data shape: {key: "counter", value: 1}
 const {value: counter} = this.props.counter
 
 // Objects
-// {key: "project", value: {title: "Cool"}}
+// Data shape: {key: "project", value: {title: "Cool"}}
 const {value: project} = this.props.project
 
 // Arrays
-// {key: "projects", value: [{key: "-K1XY-B3ZR...", value: {title: "refire"}}]}
+// Data shape: {key: "projects", value: [{key: "-K1XY-B3ZR...", value: {title: "refire"}}]}
 const {value: projects} = this.props.projects
 projects.map(record => {
   const {key: id, value: project} = record
