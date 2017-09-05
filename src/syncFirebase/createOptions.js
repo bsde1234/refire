@@ -1,23 +1,28 @@
-import firebase from 'firebase'
-import buildQueryState from './buildQueryState'
+import firebase from "firebase"
+import buildQueryState from "./buildQueryState"
 
-export default function createOptions({bindings, pathParams, state, appName}) {
+export default function createOptions(appState) {
+  const { bindings, pathParams, store, appName } = appState
+  const state = store.getState()
   return Object.keys(bindings).reduce((result, localBinding) => {
+    const paramsState =
+      typeof pathParams === "function" ? pathParams(state) : null
 
-    const paramsState = typeof pathParams === "function"
-      ? pathParams(state)
-      : null
-
-    const path = typeof bindings[localBinding].path === "function"
-      ? bindings[localBinding].path(state, paramsState)
-      : bindings[localBinding].path
+    const path =
+      typeof bindings[localBinding].path === "function"
+        ? bindings[localBinding].path(state, paramsState)
+        : bindings[localBinding].path
 
     if (path) {
-      const queryState = typeof bindings[localBinding].query === "function"
-        ? bindings[localBinding].query(buildQueryState(), state).getState()
-        : bindings[localBinding].query
+      const queryState =
+        typeof bindings[localBinding].query === "function"
+          ? bindings[localBinding].query(buildQueryState(), state).getState()
+          : bindings[localBinding].query
 
-      const firebaseRef = firebase.app(appName).database().ref(path)
+      const firebaseRef = firebase
+        .app(appName)
+        .database()
+        .ref(path)
 
       const query = bindings[localBinding].query
         ? bindings[localBinding].query(firebaseRef, state)

@@ -1,10 +1,9 @@
-import firebase from 'firebase'
-import isEqual from 'lodash/isEqual'
-import difference from 'lodash/difference'
-import intersection from 'lodash/intersection'
+import firebase from "firebase"
+import isEqual from "lodash/isEqual"
+import difference from "lodash/difference"
+import intersection from "lodash/intersection"
 
 import {
-  replaceValue,
   receiveInitialValue,
   completeInitialFetch,
   connect,
@@ -12,22 +11,21 @@ import {
   unauthenticateUser,
   updateConfig,
   revokePermissions
-} from './actions/firebase'
+} from "./actions/firebase"
 
-import createOptions from './syncFirebase/createOptions'
-import subscribe from './syncFirebase/subscribe'
-import unsubscribe from './syncFirebase/unsubscribe'
-import unsubscribeAll from './syncFirebase/unsubscribeAll'
+import createOptions from "./syncFirebase/createOptions"
+import subscribe from "./syncFirebase/subscribe"
+import unsubscribe from "./syncFirebase/unsubscribe"
+import unsubscribeAll from "./syncFirebase/unsubscribeAll"
 
 export default function syncFirebase(options = {}) {
-
   const {
     apiKey,
     store,
     projectId,
     databaseURL,
-    name = '[DEFAULT]',
-    bindings: initialBindings = {},
+    name = "[DEFAULT]",
+    bindings = {},
     onCancel = () => {},
     onAuth,
     pathParams
@@ -46,44 +44,43 @@ export default function syncFirebase(options = {}) {
   }
 
   if (typeof url !== "undefined") {
-    throw new Error("syncFirebase: url is deprecated in options, use projectId & apiKey instead")
+    throw new Error(
+      "syncFirebase: url is deprecated in options, use projectId & apiKey instead"
+    )
   }
 
   const config = {
     apiKey: apiKey,
     authDomain: `${projectId}.firebaseapp.com`,
-    databaseURL: databaseURL ? databaseURL : `https://${projectId}.firebaseio.com`,
-    storageBucket: `${projectId}.appspot.com`,
+    databaseURL: databaseURL
+      ? databaseURL
+      : `https://${projectId}.firebaseio.com`,
+    storageBucket: `${projectId}.appspot.com`
   }
 
-  store.dispatch(updateConfig({name: name}))
+  store.dispatch(updateConfig({ name: name }))
 
   const app = firebase.initializeApp(config, name)
   const rootRef = firebase.database(app).ref()
-  const firebaseRefs = {}
-  const firebaseListeners = {}
-  const firebasePopulated = {}
 
-  let currentOptions = createOptions({
-    bindings: initialBindings,
-    state: store.getState(),
+  const state = {
+    appName: name,
     projectId,
+    store,
     pathParams,
-    appName: name
-  })
+    firebaseRefs: {},
+    firebaseListeners: {},
+    firebasePopulated: {},
+    bindings
+  }
 
-  store.subscribe(() => {
-    const previousOptions = {...currentOptions}
-    const nextOptions = createOptions({
-      bindings: initialBindings,
-      state: store.getState(),
-      projectId,
-      pathParams,
-      appName: name
-    })
+  let currentOptions = createOptions(state)
 
-    if ( !isEqual(currentOptions, nextOptions) ) {
+  function updateSubscriptions() {
+    const previousOptions = { ...currentOptions }
+    const nextOptions = createOptions(state)
 
+    if (!isEqual(currentOptions, nextOptions)) {
       const nextOptionsKeys = Object.keys(nextOptions)
       const currentOptionsKeys = Object.keys(currentOptions)
 
@@ -91,88 +88,62 @@ export default function syncFirebase(options = {}) {
       const unsubscribed = difference(currentOptionsKeys, nextOptionsKeys)
       const remaining = intersection(currentOptionsKeys, nextOptionsKeys)
 
+      // update currentOptions as we're done with comparisons
       currentOptions = nextOptions
 
       // unsubscribe removed bindings
-      unsubscribed.forEach(localBinding => {
-        unsubscribe(
-          firebaseRefs[localBinding],
-          firebaseListeners[localBinding],
-          firebasePopulated[localBinding]
-        )
-        delete firebaseRefs[localBinding]
-        delete firebaseListeners[localBinding]
-        delete firebasePopulated[localBinding]
-
-        // reset store value to null
-        store.dispatch(replaceValue(localBinding, null))
-      })
+      unsubscribed.forEach(unsubscribe(state))
 
       // subscribe new bindings
-      subscribed.forEach(localBinding => {
-        const {ref, listeners, populated} = subscribe(
-          localBinding,
-          currentOptions[localBinding],
-          {
-            store: store,
-            onCancel: onCancel,
-            name: name
-          }
-        )
-        firebaseRefs[localBinding] = ref
-        firebaseListeners[localBinding] = listeners
-        firebasePopulated[localBinding] = populated
-      })
+      subscribed.forEach(subscribe(state, currentOptions, onCancel))
 
       // check if subscription paths or queries have changed
       remaining.forEach(localBinding => {
         if (
-          !isEqual(currentOptions[localBinding].path, previousOptions[localBinding].path) ||
-          !isEqual(currentOptions[localBinding].queryState, previousOptions[localBinding].queryState)
-        ) {
-          // unsubscribe
-          unsubscribe(
-            firebaseRefs[localBinding],
-            firebaseListeners[localBinding],
-            firebasePopulated[localBinding]
+          !isEqual(
+            currentOptions[localBinding].path,
+            previousOptions[localBinding].path
+          ) ||
+          !isEqual(
+            currentOptions[localBinding].queryState,
+            previousOptions[localBinding].queryState
           )
-          delete firebaseRefs[localBinding]
-          delete firebaseListeners[localBinding]
-          delete firebasePopulated[localBinding]
+        ) {
+          unsubscribe(state)(localBinding)
 
           // resubscribe with new path / query
-          const {ref, listeners, populated} = subscribe(
-            localBinding,
-            currentOptions[localBinding],
-            {
-              store: store,
-              onCancel: onCancel,
-              name: name
-            }
-          )
-          firebaseRefs[localBinding] = ref
-          firebaseListeners[localBinding] = listeners
-          firebasePopulated[localBinding] = populated
+          subscribe(state, currentOptions, onCancel)(localBinding)
         }
       })
-
     }
-  })
+  }
 
-  firebase.database(app).ref('.info/connected')
-  .on('value', snapshot => {
-    if (snapshot.val() === true) {
-      store.dispatch(connect())
-    }
-  }, revokePermissions)
+  store.subscribe(updateSubscriptions)
 
+  firebase
+    .database(app)
+    .ref(".info/connected")
+    .on(
+      "value",
+      snapshot => {
+        if (snapshot.val() === true) {
+          store.dispatch(connect())
+        }
+      },
+      revokePermissions
+    )
 
-  // we need to check for existence of auth as node version doesn't include it
-  if (firebase.auth(app) && typeof firebase.auth(app).onAuthStateChanged === "function") {
+  // we need to check for existence of onAuthStateChanged as node version doesn't include it
+  if (
+    firebase.auth(app) &&
+    typeof firebase.auth(app).onAuthStateChanged === "function"
+  ) {
     firebase.auth(app).onAuthStateChanged(function(authData) {
       // TODO: decide proper user data format
       // current format is like this for backwards compatibility with 1.x
-      const user = authData ? { ...authData.providerData[0], uid: authData.uid } : null
+      const user = authData
+        ? { ...authData.providerData[0], uid: authData.uid }
+        : null
       if (user) {
         store.dispatch(authenticateUser(user))
       } else {
@@ -185,28 +156,18 @@ export default function syncFirebase(options = {}) {
   }
 
   // initial subscriptions
-  Object.keys(currentOptions).forEach(localBinding => {
-    const {ref, listeners, populated} = subscribe(
-      localBinding,
-      currentOptions[localBinding],
-      {
-        store: store,
-        onCancel: onCancel,
-        name: name
-      }
-    )
-    firebaseRefs[localBinding] = ref
-    firebaseListeners[localBinding] = listeners
-    firebasePopulated[localBinding] = populated
-  })
+  Object.keys(currentOptions).forEach(
+    subscribe(state, currentOptions, onCancel)
+  )
 
-
-  const initialized = new Promise((resolve) => {
-    const unsubscribe = store.subscribe(() => {
-      const {firebase} = store.getState()
+  // resolve initialized promise when firebase connection has been established
+  // and initial fetch has been marked as done
+  const initialized = new Promise(resolve => {
+    const unsub = store.subscribe(() => {
+      const { firebase } = store.getState()
       if (firebase.connected && firebase.initialFetchDone) {
         resolve()
-        unsubscribe()
+        unsub()
       }
     })
   })
@@ -217,32 +178,59 @@ export default function syncFirebase(options = {}) {
   }
 
   // mark initial values received for stores that don't have initial value
-  difference(Object.keys(initialBindings), Object.keys(currentOptions)).forEach(localBinding => {
+  difference(
+    Object.keys(bindings),
+    Object.keys(currentOptions)
+  ).forEach(localBinding => {
     store.dispatch(receiveInitialValue(localBinding))
   })
 
-  return Object.defineProperties({
-    unsubscribe: () => unsubscribeAll(firebaseRefs, firebaseListeners, firebasePopulated)
-  }, {
-    refs: {
-      enumerable: false,
-      writable: false,
-      value: firebaseRefs
+  return Object.defineProperties(
+    {
+      unsubscribe: () => unsubscribeAll(state),
+      addBinding: binding => {
+        const { name, ...rest } = binding
+        bindings[name] = rest
+        // run subscription checks manually as we've added new binding
+        updateSubscriptions()
+      },
+      removeBinding: name => {
+        if (bindings[name]) {
+          delete bindings[name]
+          // run subscription checks manually as we've deleted binding
+          updateSubscriptions()
+        }
+      },
+      updateBinding: binding => {
+        const { name, ...updatedProps } = binding
+        if (bindings[name]) {
+          bindings[name] = { ...bindings[name], ...updatedProps }
+          // run subscription checks manually as we've updated binding
+          updateSubscriptions()
+        }
+      }
     },
-    listeners: {
-      enumerable: false,
-      writable: false,
-      value: firebaseListeners
-    },
-    populated: {
-      enumerable: false,
-      writable: false,
-      value: firebasePopulated
-    },
-    initialized: {
-      enumerable: false,
-      writable: false,
-      value: initialized
+    {
+      refs: {
+        enumerable: false,
+        writable: false,
+        value: state.firebaseRefs
+      },
+      listeners: {
+        enumerable: false,
+        writable: false,
+        value: state.firebaseListeners
+      },
+      populated: {
+        enumerable: false,
+        writable: false,
+        value: state.firebasePopulated
+      },
+      initialized: {
+        enumerable: false,
+        writable: false,
+        value: initialized
+      }
     }
-  })
+  )
 }

@@ -1,34 +1,33 @@
 /* eslint-env node, mocha */
-import expect from 'expect'
+import expect from "expect"
 
 import {
   incrementCounter,
   syncOptions,
   firebase,
-  syncFirebase,
-} from './helpers'
+  syncFirebase
+} from "./helpers"
 
-describe('syncFirebase', () => {
+describe("syncFirebase", () => {
   let server
 
-	afterEach(function () {
-		if (server) {
-			server.close()
-			server = null
-		}
-	})
+  afterEach(function() {
+    if (server) {
+      server.close()
+      server = null
+    }
+  })
 
-  it('should throw if store is not defined in options', () => {
+  it("should throw if store is not defined in options", () => {
     expect(() => {
       syncFirebase({
         url: "https://test",
         bindings: {}
       })
     }).toThrow(/Redux store reference not found in options/)
-
   })
 
-  it('should throw if apiKey and projectId are not defined in options', () => {
+  it("should throw if apiKey and projectId are not defined in options", () => {
     expect(() => {
       syncFirebase({
         bindings: {},
@@ -46,7 +45,7 @@ describe('syncFirebase', () => {
     }).toThrow(/apiKey not found in options/)
   })
 
-  it('should return unsubscribe method which unsubscribes all bindings', () => {
+  it("should return unsubscribe method which unsubscribes all bindings", () => {
     const data = {
       posts: [],
       user: {},
@@ -68,7 +67,7 @@ describe('syncFirebase', () => {
     }
 
     let projectId, store
-    ({projectId, store, server} = syncOptions({data, bindings}))
+    ;({ projectId, store, server } = syncOptions({ data, bindings }))
     const sync = syncFirebase({
       apiKey: "test",
       store,
@@ -83,38 +82,37 @@ describe('syncFirebase', () => {
 
     expect(Object.keys(sync.refs).length).toBe(0)
     expect(Object.keys(sync.listeners).length).toBe(0)
-
   })
 
-  it('should populate the state with initial bindings\' data', async (done) => {
+  it("should populate the state with initial bindings' data", async done => {
     const data = {
-			posts: {
-        "first": {id: "1", title: "Hello", body: "World"}
+      posts: {
+        first: { id: "1", title: "Hello", body: "World" }
       },
       user: {
         name: "Test user",
         email: "test@test.dev",
         reviews: {
-          "a": true,
-          "c": true
+          a: true,
+          c: true
         }
       },
       counter: 5,
       reviews: {
-        "a": {
+        a: {
           text: "Very good",
           rating: 5
         },
-        "b": {
+        b: {
           text: "Quite ok",
           rating: 4
         },
-        "c": {
+        c: {
           text: "Mediocre",
           rating: 3
         }
       }
-		}
+    }
 
     const bindings = {
       posts: {
@@ -130,12 +128,16 @@ describe('syncFirebase', () => {
       },
       reviews: {
         path: "user/reviews",
-        populate: (key) => `reviews/${key}`
+        populate: key => `reviews/${key}`
       }
     }
 
     let projectId, name, store, config
-    ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+    ;({ projectId, name, store, server, config } = syncOptions({
+      data,
+      bindings
+    }))
+
     const sync = syncFirebase({
       apiKey: "test",
       store,
@@ -145,9 +147,7 @@ describe('syncFirebase', () => {
       ...config
     })
 
-    expect(
-      Object.keys(store.getState().firebase.stores).length
-    ).toBe(4)
+    expect(Object.keys(store.getState().firebase.stores).length).toBe(4)
 
     expect(store.getState().firebase.connected).toBe(false)
     expect(store.getState().firebase.initialFetchDone).toBe(false)
@@ -162,13 +162,17 @@ describe('syncFirebase', () => {
       value: [
         {
           key: "first",
-          value: {id: "1", title: "Hello", body: "World"}
+          value: { id: "1", title: "Hello", body: "World" }
         }
       ]
     })
     expect(store.getState().firebase.stores.user).toEqual({
       key: "user",
-      value: {name: "Test user", email: "test@test.dev", reviews: {"a": true, "c": true}}
+      value: {
+        name: "Test user",
+        email: "test@test.dev",
+        reviews: { a: true, c: true }
+      }
     })
     expect(store.getState().firebase.stores.counter).toEqual({
       key: "counter",
@@ -197,11 +201,10 @@ describe('syncFirebase', () => {
     done()
   })
 
-  describe('should update the store state after firebase mutation', () => {
-
-    it('array item added', async () => {
+  describe("should update the store state after firebase mutation", () => {
+    it("array item added", async () => {
       const data = {
-        posts: {"0": {title: "First"}, "1": {title: "Second"}}
+        posts: { "0": { title: "First" }, "1": { title: "Second" } }
       }
 
       const bindings = {
@@ -212,86 +215,10 @@ describe('syncFirebase', () => {
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
-      const sync = syncFirebase({
-        apiKey: "test",
-        store,
-        bindings,
-        projectId,
-        name,
-        ...config
-      })
-
-      await sync.initialized
-
-      expect(store.getState().firebase.stores.posts.value).toEqual([
-        { key: "0", value: { title: 'First' } },
-        { key: "1", value: { title: 'Second' } }
-      ])
-
-      const client = firebase.app(name).database().ref(`posts`)
-      client.push({
-        title: "Third"
-      })
-
-      expect(store.getState().firebase.stores.posts.value[0].value).toEqual({title: "First"})
-      expect(store.getState().firebase.stores.posts.value[1].value).toEqual({title: "Second"})
-      expect(store.getState().firebase.stores.posts.value[2].value).toEqual({title: "Third"})
-      sync.unsubscribe()
-    })
-
-    it('array item changed', async () => {
-      const data = {
-        posts: {first: {title: "First"}, second: {title: "Second"}}
-      }
-
-      const bindings = {
-        posts: {
-          type: "Array",
-          path: "posts"
-        }
-      }
-
-      let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
-      const sync = syncFirebase({
-        apiKey: "test",
-        store,
-        bindings,
-        projectId,
-        name,
-        ...config
-      })
-
-      await sync.initialized
-
-      expect(store.getState().firebase.stores.posts.value).toEqual([
-        { key: 'first', value: { title: 'First' } },
-        { key: 'second', value: { title: 'Second' } }
-      ])
-
-      const client = firebase.app(name).database().ref(`posts/first`)
-      client.update({
-        title: "Updated title"
-      })
-      expect(store.getState().firebase.stores.posts.value[0].value).toEqual({title: "Updated title"})
-      sync.unsubscribe()
-    })
-
-    it('array item removed', async () => {
-      const data = {
-        posts: {"0": {title: "First"}, "1": {title: "Second"}}
-      }
-
-      const bindings = {
-        posts: {
-          type: "Array",
-          path: "posts"
-        }
-      }
-
-      let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -308,28 +235,43 @@ describe('syncFirebase', () => {
         { key: "1", value: { title: "Second" } }
       ])
 
-      const client = firebase.app(name).database().ref(`posts/0`)
-      client.remove()
-      expect(store.getState().firebase.stores.posts.value).toEqual([
-        { key: "1", value: { title: "Second" } }
-      ])
+      const client = firebase
+        .app(name)
+        .database()
+        .ref(`posts`)
+      client.push({
+        title: "Third"
+      })
+
+      expect(store.getState().firebase.stores.posts.value[0].value).toEqual({
+        title: "First"
+      })
+      expect(store.getState().firebase.stores.posts.value[1].value).toEqual({
+        title: "Second"
+      })
+      expect(store.getState().firebase.stores.posts.value[2].value).toEqual({
+        title: "Third"
+      })
       sync.unsubscribe()
     })
 
-    it('object changed', async () => {
+    it("array item changed", async () => {
       const data = {
-        user: {name: "Test user", email: "test@test.dev"}
+        posts: { first: { title: "First" }, second: { title: "Second" } }
       }
 
       const bindings = {
-        user: {
-          type: "Object",
-          path: "user"
+        posts: {
+          type: "Array",
+          path: "posts"
         }
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -341,17 +283,114 @@ describe('syncFirebase', () => {
 
       await sync.initialized
 
-      expect(store.getState().firebase.stores.user.value.email).toEqual("test@test.dev")
+      expect(store.getState().firebase.stores.posts.value).toEqual([
+        { key: "first", value: { title: "First" } },
+        { key: "second", value: { title: "Second" } }
+      ])
 
-      const client = firebase.app(name).database().ref(`user`)
+      const client = firebase
+        .app(name)
+        .database()
+        .ref(`posts/first`)
       client.update({
-        email: "test_user@test.dev"
+        title: "Updated title"
       })
-      expect(store.getState().firebase.stores.user.value.email).toEqual("test_user@test.dev")
+      expect(store.getState().firebase.stores.posts.value[0].value).toEqual({
+        title: "Updated title"
+      })
       sync.unsubscribe()
     })
 
-    it('primitive changed', async () => {
+    it("array item removed", async () => {
+      const data = {
+        posts: { "0": { title: "First" }, "1": { title: "Second" } }
+      }
+
+      const bindings = {
+        posts: {
+          type: "Array",
+          path: "posts"
+        }
+      }
+
+      let projectId, name, store, config
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
+      const sync = syncFirebase({
+        apiKey: "test",
+        store,
+        bindings,
+        projectId,
+        name,
+        ...config
+      })
+
+      await sync.initialized
+
+      expect(store.getState().firebase.stores.posts.value).toEqual([
+        { key: "0", value: { title: "First" } },
+        { key: "1", value: { title: "Second" } }
+      ])
+
+      const client = firebase
+        .app(name)
+        .database()
+        .ref(`posts/0`)
+      client.remove()
+      expect(store.getState().firebase.stores.posts.value).toEqual([
+        { key: "1", value: { title: "Second" } }
+      ])
+      sync.unsubscribe()
+    })
+
+    it("object changed", async () => {
+      const data = {
+        user: { name: "Test user", email: "test@test.dev" }
+      }
+
+      const bindings = {
+        user: {
+          type: "Object",
+          path: "user"
+        }
+      }
+
+      let projectId, name, store, config
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
+      const sync = syncFirebase({
+        apiKey: "test",
+        store,
+        bindings,
+        projectId,
+        name,
+        ...config
+      })
+
+      await sync.initialized
+
+      expect(store.getState().firebase.stores.user.value.email).toEqual(
+        "test@test.dev"
+      )
+
+      const client = firebase
+        .app(name)
+        .database()
+        .ref(`user`)
+      client.update({
+        email: "test_user@test.dev"
+      })
+      expect(store.getState().firebase.stores.user.value.email).toEqual(
+        "test_user@test.dev"
+      )
+      sync.unsubscribe()
+    })
+
+    it("primitive changed", async () => {
       const data = {
         counter: 1
       }
@@ -363,7 +402,10 @@ describe('syncFirebase', () => {
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -377,21 +419,22 @@ describe('syncFirebase', () => {
 
       expect(store.getState().firebase.stores.counter.value).toEqual(1)
 
-      const client = firebase.app(name).database().ref()
+      const client = firebase
+        .app(name)
+        .database()
+        .ref()
       client.update({
         counter: 2
       })
       expect(store.getState().firebase.stores.counter.value).toEqual(2)
       sync.unsubscribe()
     })
-
   })
 
-  describe('should subscribe and unsubscribe automatically after path changes', () => {
-
-    it('unsubscribe binding and reset state if path becomes null', async () => {
+  describe("should subscribe and unsubscribe automatically after path changes", () => {
+    it("unsubscribe binding and reset state if path becomes null", async () => {
       const data = {
-        user: {name: "Test user", email: "test@test.dev"}
+        user: { name: "Test user", email: "test@test.dev" }
       }
 
       const bindings = {
@@ -408,7 +451,10 @@ describe('syncFirebase', () => {
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -438,9 +484,9 @@ describe('syncFirebase', () => {
       sync.unsubscribe()
     })
 
-    it('subscribe binding if path changes from null to string', async (done) => {
+    it("subscribe binding if path changes from null to string", async done => {
       const data = {
-        user: {name: "Test user", email: "test@test.dev"}
+        user: { name: "Test user", email: "test@test.dev" }
       }
 
       const bindings = {
@@ -457,7 +503,10 @@ describe('syncFirebase', () => {
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -493,14 +542,16 @@ describe('syncFirebase', () => {
       })
     })
 
-    it('unsubscribe previous binding and subscribe with new path if path is changed', async (done) => {
+    it("unsubscribe previous binding and subscribe with new path if path is changed", async done => {
       const data = {
         users: {
           "1": {
-            name: "First user", email: "first@test.dev"
+            name: "First user",
+            email: "first@test.dev"
           },
           "2": {
-            name: "Second user", email: "second@test.dev"
+            name: "Second user",
+            email: "second@test.dev"
           }
         }
       }
@@ -519,7 +570,10 @@ describe('syncFirebase', () => {
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -534,7 +588,8 @@ describe('syncFirebase', () => {
       expect(Object.keys(sync.refs).length).toEqual(1)
       expect(Object.keys(sync.listeners).length).toEqual(1)
       expect(store.getState().firebase.stores.user.value).toEqual({
-        name: "First user", email: "first@test.dev"
+        name: "First user",
+        email: "first@test.dev"
       })
       const userRef = sync.refs.user
       const userListener = sync.listeners.user
@@ -545,7 +600,8 @@ describe('syncFirebase', () => {
         expect(Object.keys(sync.refs).length).toEqual(1)
         expect(Object.keys(sync.listeners).length).toEqual(1)
         expect(store.getState().firebase.stores.user.value).toEqual({
-          name: "Second user", email: "second@test.dev"
+          name: "Second user",
+          email: "second@test.dev"
         })
         expect(userRef).toNotEqual(sync.refs.user)
         expect(userListener).toNotBe(sync.listeners.user)
@@ -555,14 +611,16 @@ describe('syncFirebase', () => {
       })
     })
 
-    it('unsubscribe previous binding and subscribe again with new query if query is changed', async (done) => {
+    it("unsubscribe previous binding and subscribe again with new query if query is changed", async done => {
       const data = {
         users: {
           "1": {
-            name: "First user", email: "first@test.dev"
+            name: "First user",
+            email: "first@test.dev"
           },
           "2": {
-            name: "Second user", email: "second@test.dev"
+            name: "Second user",
+            email: "second@test.dev"
           }
         }
       }
@@ -576,7 +634,10 @@ describe('syncFirebase', () => {
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -607,43 +668,46 @@ describe('syncFirebase', () => {
       })
     })
 
-    it('populate should be cancelled when binding is unsubscribed', async (done) => {
+    it("populate should be cancelled when binding is unsubscribed", async done => {
       const data = {
         userReviews: {
           "2": {
-            "a": true,
-            "d": true,
-            "f": true
+            a: true,
+            d: true,
+            f: true
           },
           "4": {
-            "b": true,
-            "c": true,
-            "e": true
+            b: true,
+            c: true,
+            e: true
           }
         },
         reviews: {
-          "a": { rating: 5 },
-          "b": { rating: 4 },
-          "c": { rating: 3 },
-          "d": { rating: 4 },
-          "e": { rating: 5 },
-          "f": { rating: 4 }
+          a: { rating: 5 },
+          b: { rating: 4 },
+          c: { rating: 3 },
+          d: { rating: 4 },
+          e: { rating: 5 },
+          f: { rating: 4 }
         }
       }
 
       const bindings = {
         userReviews: {
-          path: (state) => {
-            return (state.counter === 2 || state.counter === 4)
+          path: state => {
+            return state.counter === 2 || state.counter === 4
               ? `userReviews/${state.counter}`
               : null
           },
-          populate: (key) => `reviews/${key}`
+          populate: key => `reviews/${key}`
         }
       }
 
       let projectId, name, store, config
-      ({projectId, name, store, server, config} = syncOptions({data, bindings}))
+      ;({ projectId, name, store, server, config } = syncOptions({
+        data,
+        bindings
+      }))
       const sync = syncFirebase({
         apiKey: "test",
         store,
@@ -653,24 +717,26 @@ describe('syncFirebase', () => {
         ...config
       })
 
-      expect(
-        Object.keys(store.getState().firebase.stores).length
-      ).toBe(1)
+      expect(Object.keys(store.getState().firebase.stores).length).toBe(1)
 
       await sync.initialized
 
       store.dispatch(incrementCounter())
 
-      new Promise((resolve) => {
+      new Promise(resolve => {
         const unsubscribe = store.subscribe(() => {
           const userReviews = store.getState().firebase.stores.userReviews
           expect(userReviews.key).toBe("2")
-          expect(userReviews.value.map(review => review.key)).toEqual(["a", "d", "f"])
+          expect(userReviews.value.map(review => review.key)).toEqual([
+            "a",
+            "d",
+            "f"
+          ])
           unsubscribe()
           resolve()
         })
       }).then(() => {
-        new Promise((resolve) => {
+        new Promise(resolve => {
           const unsubscribe = store.subscribe(() => {
             expect(store.getState().firebase.stores.userReviews).toEqual(null)
             unsubscribe()
@@ -682,16 +748,17 @@ describe('syncFirebase', () => {
           const unsubscribe = store.subscribe(() => {
             const userReviews = store.getState().firebase.stores.userReviews
             expect(userReviews.key).toBe("4")
-            expect(userReviews.value.map(review => review.key)).toEqual(["b", "c", "e"])
+            expect(userReviews.value.map(review => review.key)).toEqual([
+              "b",
+              "c",
+              "e"
+            ])
             unsubscribe()
             sync.unsubscribe()
             done()
           })
         })
       })
-
     })
-
   })
-
 })

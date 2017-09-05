@@ -1,5 +1,5 @@
-import firebase from 'firebase'
-import uniq from 'lodash/uniq'
+import firebase from "firebase"
+import uniq from "lodash/uniq"
 
 export const ARRAY_CHILD_ADDED = "ARRAY_CHILD_ADDED"
 export const ARRAY_CHILD_CHANGED = "ARRAY_CHILD_CHANGED"
@@ -24,33 +24,34 @@ const authProviders = {
   facebook: "FacebookAuthProvider",
   github: "GithubAuthProvider",
   google: "GoogleAuthProvider",
-  twitter: "TwitterAuthProvider",
+  twitter: "TwitterAuthProvider"
 }
 
 const authFlows = {
   popup: "signInWithPopup",
-  redirect: "signInWithRedirect",
+  redirect: "signInWithRedirect"
 }
 
 // generated UUIDs are only used for internal request tracking
 // http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
 function createUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(char) {
-    const rand = Math.random()*16|0
-    const value = char === 'x'
-      ? rand
-      : (rand&0x3|0x8)
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(
+    char
+  ) {
+    const rand = (Math.random() * 16) | 0
+    const value = char === "x" ? rand : (rand & 0x3) | 0x8
     return value.toString(16)
   })
 }
 
 const createUserErrors = {
-  "EMAIL_TAKEN": "The new user account cannot be created because the email is already in use.",
-  "INVALID_EMAIL": "The specified email is not a valid email."
+  EMAIL_TAKEN:
+    "The new user account cannot be created because the email is already in use.",
+  INVALID_EMAIL: "The specified email is not a valid email."
 }
 
 const resetPasswordErrors = {
-  "INVALID_USER": "The specified user account does not exist."
+  INVALID_USER: "The specified user account does not exist."
 }
 
 function createRecord(key, value) {
@@ -71,7 +72,7 @@ function updateProcessing(field, value) {
 }
 
 function updateWriteProcessing(options = {}) {
-  const {path, id, value} = options
+  const { path, id, value } = options
   return {
     type: WRITE_PROCESSING_UPDATED,
     payload: {
@@ -165,9 +166,7 @@ export function removeArrayChild(path, snapshot) {
 
 export function updateArray(path, key, value) {
   const recordsArray = (value || []).reduce((arr, record) => {
-    arr.push(
-      createRecord(record[0], record[1])
-    )
+    arr.push(createRecord(record[0], record[1]))
     return arr
   }, [])
 
@@ -208,9 +207,8 @@ export function completeInitialFetch() {
 
 export function receiveInitialValue(path) {
   return (dispatch, getState) => {
-    const {firebase: {initialFetchDone}} = getState()
+    const { firebase: { initialFetchDone } } = getState()
     if (!initialFetchDone) {
-
       dispatch({
         type: INITIAL_VALUE_RECEIVED,
         payload: {
@@ -218,20 +216,17 @@ export function receiveInitialValue(path) {
         }
       })
 
-      const {firebase: {initialValuesReceived, stores}} = getState()
+      const { firebase: { initialValuesReceived, stores } } = getState()
 
-      if (
-        uniq(initialValuesReceived).length === Object.keys(stores).length
-      ) {
+      if (uniq(initialValuesReceived).length === Object.keys(stores).length) {
         dispatch(completeInitialFetch())
       }
-
     }
   }
 }
 
 export function connect() {
-  return {type: CONNECTED}
+  return { type: CONNECTED }
 }
 
 export function authenticateUser(authData) {
@@ -252,17 +247,22 @@ export function passwordLogin(email, password) {
     return new Promise((resolve, reject) => {
       dispatch(updateProcessing("login", true))
 
-      const {firebase: {name}} = getState()
+      const { firebase: { name } } = getState()
 
-      firebase.app(name).auth().signInWithEmailAndPassword(email, password).then(() => {
-        dispatch(updateProcessing("login", false))
-        dispatch(updateCompleted("login", true))
-        return resolve()
-      }).catch(error => {
-        dispatch(updateError("login", error.message))
-        dispatch(updateProcessing("login", false))
-        return reject()
-      })
+      firebase
+        .app(name)
+        .auth()
+        .signInWithEmailAndPassword(email, password)
+        .then(() => {
+          dispatch(updateProcessing("login", false))
+          dispatch(updateCompleted("login", true))
+          return resolve()
+        })
+        .catch(error => {
+          dispatch(updateError("login", error.message))
+          dispatch(updateProcessing("login", false))
+          return reject()
+        })
     })
   }
 }
@@ -277,16 +277,21 @@ export function oAuthLogin(flowCode, providerCode, scopes = []) {
         provider.addScope(scope)
       })
       const flow = authFlows[flowCode]
-      const {firebase: {name}} = getState()
-      firebase.app(name).auth()[flow](provider).then(() => {
-        dispatch(updateProcessing("login", false))
-        dispatch(updateCompleted("login", true))
-        return resolve()
-      }).catch(error => {
-        dispatch(updateError("login", error.message))
-        dispatch(updateProcessing("login", false))
-        return reject(error)
-      })
+      const { firebase: { name } } = getState()
+      firebase
+        .app(name)
+        .auth()
+        [flow](provider)
+        .then(() => {
+          dispatch(updateProcessing("login", false))
+          dispatch(updateCompleted("login", true))
+          return resolve()
+        })
+        .catch(error => {
+          dispatch(updateError("login", error.message))
+          dispatch(updateProcessing("login", false))
+          return reject(error)
+        })
     })
   }
 }
@@ -302,22 +307,27 @@ export function createUser(email, password) {
     return new Promise((resolve, reject) => {
       dispatch(updateProcessing("createUser", true))
 
-      const {firebase: {name}} = getState()
+      const { firebase: { name } } = getState()
 
-      firebase.app(name).auth().createUserWithEmailAndPassword(email, password).then(userData => {
-        dispatch(updateProcessing("createUser", false))
-        dispatch(updateCompleted("createUser", true))
-        return resolve(userData)
-      }).catch(error => {
-        dispatch(
-          updateError(
-            "createUser",
-            createUserErrors[error.code] || error.message
+      firebase
+        .app(name)
+        .auth()
+        .createUserWithEmailAndPassword(email, password)
+        .then(userData => {
+          dispatch(updateProcessing("createUser", false))
+          dispatch(updateCompleted("createUser", true))
+          return resolve(userData)
+        })
+        .catch(error => {
+          dispatch(
+            updateError(
+              "createUser",
+              createUserErrors[error.code] || error.message
+            )
           )
-        )
-        dispatch(updateProcessing("createUser", false))
-        return reject()
-      })
+          dispatch(updateProcessing("createUser", false))
+          return reject()
+        })
     })
   }
 }
@@ -326,32 +336,37 @@ export function resetPassword(email) {
   return (dispatch, getState) => {
     dispatch(updateProcessing("resetPassword", true))
 
-    const {firebase: {name}} = getState()
+    const { firebase: { name } } = getState()
 
-    firebase.app(name).auth().sendPasswordResetEmail(email).then(() => {
-      dispatch(updateProcessing("resetPassword", false))
-      dispatch(updateCompleted("resetPassword", true))
-    }).catch(error => {
-      dispatch(
-        updateError(
-          "resetPassword",
-          resetPasswordErrors[error.code] || error.message
+    firebase
+      .app(name)
+      .auth()
+      .sendPasswordResetEmail(email)
+      .then(() => {
+        dispatch(updateProcessing("resetPassword", false))
+        dispatch(updateCompleted("resetPassword", true))
+      })
+      .catch(error => {
+        dispatch(
+          updateError(
+            "resetPassword",
+            resetPasswordErrors[error.code] || error.message
+          )
         )
-      )
-      dispatch(updateProcessing("resetPassword", false))
-    })
+        dispatch(updateProcessing("resetPassword", false))
+      })
   }
 }
 
 export function write({ method, path = "", value, ownProps }) {
   return (dispatch, getState) => {
     return new Promise((resolve, reject) => {
-
       const id = createUUID()
-      const finalPath = typeof path === "function"
-        ? path(getState(), ownProps)
-        : (path ? path : "/")
-      const {firebase: {name}} = getState()
+      const finalPath =
+        typeof path === "function"
+          ? path(getState(), ownProps)
+          : path ? path : "/"
+      const { firebase: { name } } = getState()
 
       dispatch(
         updateWriteProcessing({
@@ -361,26 +376,24 @@ export function write({ method, path = "", value, ownProps }) {
         })
       )
 
-      const ref = firebase.app(name).database().ref(finalPath)
-      ref[method](
-        value,
-        error => {
-          if (error) {
-            dispatch(
-              updateWriteErrors(finalPath, error.message)
-            )
-            return reject()
-          }
-          dispatch(
-            updateWriteProcessing({
-              path: finalPath,
-              id: id,
-              value: false
-            })
-          )
-          return resolve()
+      const ref = firebase
+        .app(name)
+        .database()
+        .ref(finalPath)
+      ref[method](value, error => {
+        if (error) {
+          dispatch(updateWriteErrors(finalPath, error.message))
+          return reject()
         }
-      )
+        dispatch(
+          updateWriteProcessing({
+            path: finalPath,
+            id: id,
+            value: false
+          })
+        )
+        return resolve()
+      })
     })
   }
 }

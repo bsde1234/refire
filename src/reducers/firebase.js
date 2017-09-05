@@ -1,8 +1,8 @@
-import findIndex from 'lodash/findIndex'
-import without from 'lodash/without'
-import isEqual from 'lodash/isEqual'
-import u from 'updeep'
-import createReducer from '../helpers/createReducer'
+import findIndex from "lodash/findIndex"
+import without from "lodash/without"
+import isEqual from "lodash/isEqual"
+import u from "updeep"
+import createReducer from "../helpers/createReducer"
 import {
   ARRAY_CHILD_ADDED,
   ARRAY_CHILD_CHANGED,
@@ -22,18 +22,19 @@ import {
   COMPLETED_UPDATED,
   WRITE_PROCESSING_UPDATED,
   WRITE_ERRORS_UPDATED
-} from '../actions/firebase'
+} from "../actions/firebase"
 
 function indexForKey(array, key) {
   return findIndex(array, element => element.key === key)
 }
 
 function arrayChildAdded(state, action) {
-  const {payload: {path, value, previousChildKey}} = action
+  const { payload: { path, value, previousChildKey } } = action
   const newArray = [...state.stores[path].value]
-  const insertionIndex = previousChildKey === null
-    ? newArray.length
-    : indexForKey(newArray, previousChildKey) + 1
+  const insertionIndex =
+    previousChildKey === null
+      ? newArray.length
+      : indexForKey(newArray, previousChildKey) + 1
 
   newArray.splice(insertionIndex, 0, value)
 
@@ -41,7 +42,7 @@ function arrayChildAdded(state, action) {
 }
 
 function arrayChildChanged(state, action) {
-  const {payload: {path, key, value}} = action
+  const { payload: { path, key, value } } = action
   const currentValue = state.stores[path] || {}
 
   // skip update if key isn't present in current array
@@ -51,20 +52,19 @@ function arrayChildChanged(state, action) {
 
   return u.updateIn(
     `stores.${path}.value.${indexForKey(currentValue.value, key)}.value`,
-    prev => isEqual(prev, value.value) ? prev : value.value,
+    prev => (isEqual(prev, value.value) ? prev : value.value),
     state
   )
 }
 
 function arrayChildMoved(state, action) {
-  const {payload: {path, key, previousChildKey}} = action
+  const { payload: { path, key, previousChildKey } } = action
   const newArray = [...state.stores[path].value]
   const currentIndex = indexForKey(newArray, key)
   const record = newArray.splice(currentIndex, 1)[0]
 
-  const insertionIndex = previousChildKey === null
-    ? 0
-    : indexForKey(newArray, previousChildKey) + 1
+  const insertionIndex =
+    previousChildKey === null ? 0 : indexForKey(newArray, previousChildKey) + 1
 
   newArray.splice(insertionIndex, 0, record)
 
@@ -72,7 +72,7 @@ function arrayChildMoved(state, action) {
 }
 
 function arrayChildRemoved(state, action) {
-  const {payload: {path, key}} = action
+  const { payload: { path, key } } = action
   const newArray = [...state.stores[path].value]
   newArray.splice(indexForKey(newArray, key), 1)
 
@@ -80,12 +80,12 @@ function arrayChildRemoved(state, action) {
 }
 
 function valueReplaced(state, action) {
-  const {payload: {path, value}} = action
+  const { payload: { path, value } } = action
   return u({ stores: { [path]: value } }, state)
 }
 
 function objectReplaced(state, action) {
-  const {payload: {path, value}} = action
+  const { payload: { path, value } } = action
 
   // TODO:
   // investigate why firebase's .val() doesn't return new reference for object when nested object's key has been deleted
@@ -99,8 +99,8 @@ function objectReplaced(state, action) {
 }
 
 function initialValueReceived(state, action) {
-  const {payload: {path}} = action
-  return u({ initialValuesReceived: (values) => [...values, path] }, state)
+  const { payload: { path } } = action
+  return u({ initialValuesReceived: values => [...values, path] }, state)
 }
 
 function initialFetchDone(state) {
@@ -120,41 +120,37 @@ function userUnauthenticated(state) {
 }
 
 function configUpdated(state, action) {
-  const {payload: {name}} = action
+  const { payload: { name } } = action
   return u({ name: name }, state)
 }
 
 function updateError(state, action) {
-  const {payload: {field, error}} = action
+  const { payload: { field, error } } = action
   return u({ errors: { [field]: error } }, state)
 }
 
 function updateProcessing(state, action) {
-  const {payload: {field, value}} = action
+  const { payload: { field, value } } = action
   return u({ processing: { [field]: value } }, state)
 }
 
 function updateCompleted(state, action) {
-  const {payload: {field, value}} = action
+  const { payload: { field, value } } = action
   return u({ completed: { [field]: value } }, state)
 }
 
 function updateWriteProcessing(state, action) {
-  const {payload: {path, id, value}} = action
+  const { payload: { path, id, value } } = action
   const currentValue = state.writes.processing[path] || []
-  const newValue = value
-    ? [...currentValue, id]
-    : without(currentValue, id)
+  const newValue = value ? [...currentValue, id] : without(currentValue, id)
 
   return u({ writes: { processing: { [path]: newValue } } }, state)
 }
 
 function updateWriteErrors(state, action) {
-  const {payload: {path, error}} = action
+  const { payload: { path, error } } = action
   const currentValue = state.writes.errors[path] || []
-  const newValue = error
-    ? [...currentValue, error]
-    : []
+  const newValue = error ? [...currentValue, error] : []
 
   return u({ writes: { errors: { [path]: newValue } } }, state)
 }

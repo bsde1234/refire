@@ -1,5 +1,5 @@
-export { default as syncFirebase } from './syncFirebase'
-export { default as firebaseToProps } from './firebaseToProps'
-export { default as firebaseReducer } from './reducers/firebase'
-export * as firebaseActions from './actions/firebase'
-export firebase from 'firebase'
+export { default as syncFirebase } from "./syncFirebase"
+export { default as firebaseToProps } from "./firebaseToProps"
+export { default as firebaseReducer } from "./reducers/firebase"
+export * as firebaseActions from "./actions/firebase"
+export { default as firebase } from "firebase"

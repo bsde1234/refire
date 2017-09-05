@@ -7,7 +7,7 @@ import {
   updateObject,
   receiveInitialValue,
   revokePermissions
-} from '../actions/firebase'
+} from "../actions/firebase"
 
 export function dispatchChildAdded(store, localBinding) {
   return (key, value, previousChildKey) => {
@@ -19,9 +19,7 @@ export function dispatchChildAdded(store, localBinding) {
 
 export function dispatchChildChanged(store, localBinding) {
   return (key, value) => {
-    return store.dispatch(
-      changeArrayChild(localBinding, key, value)
-    )
+    return store.dispatch(changeArrayChild(localBinding, key, value))
   }
 }
 
@@ -34,25 +32,19 @@ export function dispatchChildMoved(store, localBinding) {
 }
 
 export function dispatchChildRemoved(store, localBinding) {
-  return (snapshot) => {
-    return store.dispatch(
-      removeArrayChild(localBinding, snapshot)
-    )
+  return snapshot => {
+    return store.dispatch(removeArrayChild(localBinding, snapshot))
   }
 }
 
 export function dispatchArrayUpdated(store, localBinding) {
   return (key, value) => {
-    return store.dispatch(
-      updateArray(localBinding, key, value)
-    )
+    return store.dispatch(updateArray(localBinding, key, value))
   }
 }
 
 export function dispatchObjectUpdated(store, localBinding, snapshot) {
-  return store.dispatch(
-    updateObject(localBinding, snapshot)
-  )
+  return store.dispatch(updateObject(localBinding, snapshot))
 }
 
 export function dispatchInitialValueReceived(store, localBinding) {
