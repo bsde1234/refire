@@ -2,10 +2,7 @@
   "name": "refire",
   "version": "3.0.0",
   "description": "Declarative Firebase bindings for Redux",
-  "keywords": [
-    "redux",
-    "firebase"
-  ],
+  "keywords": ["redux", "firebase"],
   "main": "./lib/index.js",
   "types": "./index.d.ts",
   "scripts": {
@@ -14,7 +11,8 @@
     "clean": "rimraf lib",
     "lint": "eslint src",
     "prepublish": "npm run clean && npm run build",
-    "test": "mocha --compilers js:babel/register --recursive --require ./test/setup.js"
+    "test":
+      "mocha --compilers js:babel/register --recursive --require ./test/setup.js"
   },
   "repository": {
     "type": "git",
@@ -35,11 +33,11 @@
     "jsdom": "^9.8.3",
     "mocha": "^2.5.3",
     "proxyquire": "^1.7.4",
-    "redux": "^3.6.0",
+    "redux": "^3.7.2",
     "rimraf": "^2.5.4"
   },
   "dependencies": {
-    "firebase": "3.6.4",
+    "firebase": "^3.9.0",
     "lodash": "^4.16.6",
     "redux-thunk": "^2.2.0",
     "updeep": "^1.0.0"
