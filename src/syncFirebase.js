@@ -190,9 +190,11 @@ export default function syncFirebase(options = {}) {
       unsubscribe: () => unsubscribeAll(state),
       addBinding: binding => {
         const { name, ...rest } = binding
-        bindings[name] = rest
-        // run subscription checks manually as we've added new binding
-        updateSubscriptions()
+        if (name) {
+          bindings[name] = rest
+          // run subscription checks manually as we've added new binding
+          updateSubscriptions()
+        }
       },
       removeBinding: name => {
         if (bindings[name]) {
