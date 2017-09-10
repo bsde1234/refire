@@ -1,3 +1,9 @@
+# 3.1.0
+
+## New features
+
+- syncFirebase now returns methods for adding, updating and removing bindings
+
 # 3.0.0
 
 ## Breaking changes
